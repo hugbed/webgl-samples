@@ -2,16 +2,23 @@ import { mat4 } from 'gl-matrix';
 
 class Cube
 {
-    constructor(gl) {
+    constructor(gl, position) {
         this.gl = gl;
+        this.position = position;
+        this.rotation = 0.0;
+        this.modelMatrix = mat4.create();
+
         this.createPositionBuffer();
         this.createIndexBuffer();
         this.createNormalBuffer();
-        this.rotation = 0.0;
     }
 
     update(deltaTime) {
         this.modelMatrix = mat4.create();
+
+        mat4.translate(this.modelMatrix,
+            this.modelMatrix,
+            this.position);
 
         mat4.rotate(this.modelMatrix,  // destination matrix
             this.modelMatrix,  // matrix to rotate
@@ -25,15 +32,18 @@ class Cube
         this.rotation += deltaTime;
     }
 
-    draw(programInfo) {
+    draw(pipeline) {
         this.gl.uniformMatrix4fv(
-            programInfo.uniformLocations.modelMatrix,
+            pipeline.uniformLocations['uModelMatrix'],
             false,
-            this.modelMatrix);
+            this.modelMatrix
+        );
 
         // Tell WebGL how to pull out the positions from the position
         // buffer into the vertexPosition attribute
         {
+            const location = pipeline.attribLocations['aVertexPosition'];
+
             const numComponents = 3;
             const type = this.gl.FLOAT;
             const normalize = false;
@@ -41,19 +51,21 @@ class Cube
             const offset = 0;
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
             this.gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexPosition,
+                location,
                 numComponents,
                 type,
                 normalize,
                 stride,
-                offset);
-            this.gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexPosition);
+                offset
+            );
+            this.gl.enableVertexAttribArray(location);
         }
 
         // Tell WebGL how to pull out the normals from
         // the normal buffer into the vertexNormal attribute.
         {
+            const location = pipeline.attribLocations['aVertexNormal'];
+
             const numComponents = 3;
             const type = this.gl.FLOAT;
             const normalize = false;
@@ -61,14 +73,14 @@ class Cube
             const offset = 0;
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
             this.gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexNormal,
+                location,
                 numComponents,
                 type,
                 normalize,
                 stride,
-                offset);
-            this.gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexNormal);
+                offset
+            );
+            this.gl.enableVertexAttribArray(location);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -89,43 +101,33 @@ class Cube
 
         const positions = [
             // Front face
-            -1.0, -1.0,  1.0,
-            1.0, -1.0,  1.0,
-            1.0,  1.0,  1.0,
-            -1.0,  1.0,  1.0,
+            -1.0, -1.0,  1.0,     1.0, -1.0,  1.0,
+            1.0,  1.0,  1.0,     -1.0,  1.0,  1.0,
 
             // Back face
-            -1.0, -1.0, -1.0,
-            -1.0,  1.0, -1.0,
-            1.0,  1.0, -1.0,
-            1.0, -1.0, -1.0,
+            -1.0, -1.0, -1.0,    -1.0,  1.0, -1.0,
+            1.0,  1.0, -1.0,      1.0, -1.0, -1.0,
 
             // Top face
-            -1.0,  1.0, -1.0,
-            -1.0,  1.0,  1.0,
-            1.0,  1.0,  1.0,
-            1.0,  1.0, -1.0,
+            -1.0,  1.0, -1.0,    -1.0,  1.0,  1.0,
+            1.0,  1.0,  1.0,      1.0,  1.0, -1.0,
 
             // Bottom face
-            -1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, -1.0,  1.0,
-            -1.0, -1.0,  1.0,
+            -1.0, -1.0, -1.0,     1.0, -1.0, -1.0,
+            1.0, -1.0,  1.0,     -1.0, -1.0,  1.0,
 
             // Right face
-            1.0, -1.0, -1.0,
-            1.0,  1.0, -1.0,
-            1.0,  1.0,  1.0,
-            1.0, -1.0,  1.0,
+            1.0, -1.0, -1.0,      1.0,  1.0, -1.0,
+            1.0,  1.0,  1.0,      1.0, -1.0,  1.0,
 
             // Left face
-            -1.0, -1.0, -1.0,
-            -1.0, -1.0,  1.0,
-            -1.0,  1.0,  1.0,
-            -1.0,  1.0, -1.0,
+            -1.0, -1.0, -1.0,    -1.0, -1.0,  1.0,
+            -1.0,  1.0,  1.0,    -1.0,  1.0, -1.0,
         ];
 
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+        this.gl.bufferData(
+            this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW
+        );
     }
 
     createIndexBuffer() {
@@ -142,8 +144,9 @@ class Cube
             20, 21, 22,     20, 22, 23,   // left
         ];
 
-        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER,
-            new Uint16Array(indices), this.gl.STATIC_DRAW);
+        this.gl.bufferData(
+            this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), this.gl.STATIC_DRAW
+        );
     }
 
     createNormalBuffer() {
@@ -153,44 +156,33 @@ class Cube
 
         const vertexNormals = [
             // Front
-            0.0,  0.0,  1.0,
-            0.0,  0.0,  1.0,
-            0.0,  0.0,  1.0,
-            0.0,  0.0,  1.0,
+            0.0,  0.0,  1.0,      0.0,  0.0,  1.0,
+            0.0,  0.0,  1.0,      0.0,  0.0,  1.0,
 
             // Back
-            0.0,  0.0, -1.0,
-            0.0,  0.0, -1.0,
-            0.0,  0.0, -1.0,
-            0.0,  0.0, -1.0,
+            0.0,  0.0, -1.0,      0.0,  0.0, -1.0,
+            0.0,  0.0, -1.0,      0.0,  0.0, -1.0,
 
             // Top
-            0.0,  1.0,  0.0,
-            0.0,  1.0,  0.0,
-            0.0,  1.0,  0.0,
-            0.0,  1.0,  0.0,
+            0.0,  1.0,  0.0,      0.0,  1.0,  0.0,
+            0.0,  1.0,  0.0,      0.0,  1.0,  0.0,
 
             // Bottom
-            0.0, -1.0,  0.0,
-            0.0, -1.0,  0.0,
-            0.0, -1.0,  0.0,
-            0.0, -1.0,  0.0,
+            0.0, -1.0,  0.0,      0.0, -1.0,  0.0,
+            0.0, -1.0,  0.0,      0.0, -1.0,  0.0,
 
             // Right
-            1.0,  0.0,  0.0,
-            1.0,  0.0,  0.0,
-            1.0,  0.0,  0.0,
-            1.0,  0.0,  0.0,
+            1.0,  0.0,  0.0,      1.0,  0.0,  0.0,
+            1.0,  0.0,  0.0,      1.0,  0.0,  0.0,
 
             // Left
-            -1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0
+            -1.0,  0.0,  0.0,    -1.0,  0.0,  0.0,
+            -1.0,  0.0,  0.0,    -1.0,  0.0,  0.0
         ];
 
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertexNormals),
-            this.gl.STATIC_DRAW);
+        this.gl.bufferData(
+            this.gl.ARRAY_BUFFER, new Float32Array(vertexNormals), this.gl.STATIC_DRAW
+        );
     }
 }
 
