@@ -42,6 +42,19 @@ class Camera {
             [0.0, -6.0, -12.0]
         );  
     }
+
+    bind(pipeline) {
+        this.gl.uniformMatrix4fv(
+            pipeline.uniformLocations['uProjectionMatrix'],
+            false,
+            this.projectionMatrix
+        );
+        this.gl.uniformMatrix4fv(
+            pipeline.uniformLocations['uViewMatrix'],
+            false,
+            this.viewMatrix
+        );
+    }
 }
 
 export { Camera };

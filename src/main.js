@@ -4,6 +4,7 @@ import { Cube } from './cube.js';
 import { Plane } from './plane.js';
 import { Camera } from './camera.js';
 import { Pipeline } from './pipeline.js';
+import { BoundingBox } from './bounding_box.js';
 
 import primitiveVs from './shaders/primitive.vert';
 import surfaceFs from './shaders/surface.frag';
@@ -14,33 +15,19 @@ function main() {
     const canvas = document.querySelector('#glcanvas');
     const gl = canvas.getContext('webgl');
 
-    /*
-    var spector = new SPECTOR.Spector();
-    spector.displayUI();
-    spector.spyCanvases();
-    */
-
     // If we don't have a GL context, give up now
     if (!gl) {
         alert('Unable to initialize WebGL. Your browser or machine may not support it.');
         return;
     }
 
-    let camera = new Camera(gl);
-
-    const cubes = [
-        new Cube(gl, vec3.fromValues(0.0, 0.0, 0.0)),
-        new Cube(gl, vec3.fromValues(5.0, 2.0, 1.0)),
-        new Cube(gl, vec3.fromValues(0.0, 0.0, 0.0)),
-        new Cube(gl, vec3.fromValues(0.0, 0.0, 0.0)),
-        new Cube(gl, vec3.fromValues(0.0, 0.0, 0.0)),
-        new Cube(gl, vec3.fromValues(0.0, 0.0, 0.0))
-    ];
-
-    const plane = new Plane(gl);
-
-    const nodes = [ ...cubes, plane ];
-
+    /*
+        var spector = new SPECTOR.Spector();
+        spector.displayUI();
+        spector.spyCanvases();
+    */
+   
+    // Init shaders
     const locations = {
         attribLocations: [
             'aVertexPosition',
@@ -55,9 +42,22 @@ function main() {
     };
     const pipeline = new Pipeline(gl, primitiveVs, surfaceFs, locations);
 
-    var then = 0;
+    // Create objects to render
+    let camera = new Camera(gl);
 
-    // Draw the scene repeatedly
+    const cubes = [
+        new Cube(gl, vec3.fromValues(-5.0, 2.5, -3.0)),
+        new Cube(gl, vec3.fromValues(5.0, 1.5, 0.0)),
+        new Cube(gl, vec3.fromValues(-2.0, 1.0, 4.0)),
+        new Cube(gl, vec3.fromValues(1.0, 0.0, -3.0))
+    ];
+
+    const plane = new Plane(gl);
+
+    const nodes = [ ...cubes, plane ];
+
+    // Render loop
+    var then = 0;
     function render(now) {
         now *= 0.001;  // convert to seconds
         const deltaTime = now - then;
@@ -67,7 +67,11 @@ function main() {
             cube.update(deltaTime);
         }
 
+        // Compute shadow casters bounding box
+        /* const box = */ computeBoundingBox(cubes);
+
         clear(gl);
+
         drawScene(gl, pipeline, camera, nodes);
 
         requestAnimationFrame(render);
@@ -75,34 +79,34 @@ function main() {
     requestAnimationFrame(render);
 }
 
-//
-// Draw the scene.
-//
-function clear(gl) {
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
-    gl.clearDepth(1.0);                 // Clear everything
-    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+function computeBoundingBox(objects) {
+    let box = new BoundingBox();
+    for (const obj of objects) {
+        const objBox = obj.worldBoundingBox;
 
-    // Clear the canvas before we start drawing on it.
+        vec3.min(box.min,
+            box.min, objBox.min
+        );
+        vec3.max(box.max,
+            box.max, objBox.max
+        );
+    }
+    return box;
+}
+
+function clear(gl) {
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearDepth(1.0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
 function drawScene(gl, pipeline, camera, nodes) {
-    // Tell WebGL to use our program when drawing
-    gl.useProgram(pipeline.shaderProgram);
+    pipeline.bind();
 
-    // Bind camera matrix uniforms
-    gl.uniformMatrix4fv(
-        pipeline.uniformLocations['uProjectionMatrix'],
-        false,
-        camera.projectionMatrix
-    );
-    gl.uniformMatrix4fv(
-        pipeline.uniformLocations['uViewMatrix'],
-        false,
-        camera.viewMatrix
-    );
+    camera.bind(pipeline);
 
     for (const node of nodes) {
         node.draw(pipeline);

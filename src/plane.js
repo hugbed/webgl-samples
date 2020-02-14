@@ -1,13 +1,17 @@
-import { mat4 } from 'gl-matrix';
+import { vec3, mat4 } from 'gl-matrix';
+
+import { BoundingBox } from "./bounding_box.js";
 
 class Plane
 {
     constructor(gl) {
         this.gl = gl;
+        this.modelMatrix = mat4.create();
+        this.worldBoundingBox = new BoundingBox();
+
         this.createPositionBuffer();
         this.createIndexBuffer();
         this.createNormalBuffer();
-        this.modelMatrix = mat4.create();
     }
 
     draw(programInfo) {
@@ -84,6 +88,10 @@ class Plane
         ];
 
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+
+        // Update bounding box
+        this.worldBoundingBox.min = vec3.fromValues(-10.0, -2.0, -10.0);
+        this.worldBoundingBox.max = vec3.fromValues(10.0, -2.0, 10.0);
     }
 
     createIndexBuffer() {

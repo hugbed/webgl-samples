@@ -1,4 +1,6 @@
-import { mat4 } from 'gl-matrix';
+import { vec3, mat4 } from 'gl-matrix';
+
+import { BoundingBox } from "./bounding_box.js";
 
 class Cube
 {
@@ -7,6 +9,8 @@ class Cube
         this.position = position;
         this.rotation = 0.0;
         this.modelMatrix = mat4.create();
+        this.vertexBoundingBox = new BoundingBox();
+        this.worldBoundingBox = new BoundingBox();
 
         this.createPositionBuffer();
         this.createIndexBuffer();
@@ -28,6 +32,10 @@ class Cube
             this.modelMatrix,  // matrix to rotate
             this.rotation * .7,// amount to rotate in radians
             [0, 1, 0]);       // axis to rotate around (X)
+
+        // Update world bounding box
+        this.worldBoundingBox = this.vertexBoundingBox.clone();
+        this.worldBoundingBox.transform(this.modelMatrix);
 
         this.rotation += deltaTime;
     }
@@ -128,6 +136,13 @@ class Cube
         this.gl.bufferData(
             this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW
         );
+
+        // Update bounding box
+        this.vertexBoundingBox.min = vec3.fromValues(-1.0, -1.0, -1.0);
+        this.vertexBoundingBox.max = vec3.fromValues(1.0, 1.0, 1.0);
+
+        // Init to default world transform
+        this.worldBoundingBox = this.vertexBoundingBox.clone();
     }
 
     createIndexBuffer() {

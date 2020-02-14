@@ -4,6 +4,10 @@ class Pipeline {
         this.initShaderProgram(vsSource, fsSource);
         this.fetchLocations(locations);
     }
+
+    bind() {
+        this.gl.useProgram(this.shaderProgram);
+    }
     
     initShaderProgram(vsSource, fsSource) {
         const vertexShader = this.loadShader(this.gl.VERTEX_SHADER, vsSource);
