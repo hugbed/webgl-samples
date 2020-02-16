@@ -48,21 +48,23 @@ class Plane
         {
             const location = programInfo.attribLocations['aVertexNormal'];
 
-            const numComponents = 3;
-            const type = this.gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
-            this.gl.vertexAttribPointer(
-                location,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset
-            );
-            this.gl.enableVertexAttribArray(location);
+            if (location !== undefined) {
+                const numComponents = 3;
+                const type = this.gl.FLOAT;
+                const normalize = false;
+                const stride = 0;
+                const offset = 0;
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+                this.gl.vertexAttribPointer(
+                    location,
+                    numComponents,
+                    type,
+                    normalize,
+                    stride,
+                    offset
+                );
+                this.gl.enableVertexAttribArray(location);
+            }
         }
 
         // Tell WebGL which indices to use to index the vertices
