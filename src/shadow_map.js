@@ -17,15 +17,25 @@ class ShadowMap
         // Set the drawing position to the "identity" point, which is
         // the center of the scene.
         this.viewMatrix = mat4.create();
-    
-        mat4.targetTo(this.viewMatrix,
-            vec3.create(),
-            vec3.fromValues(0.0, -1.0, 0.0),
-            vec3.fromValues(-1.0, 0.0, 0.0));
+
+        const lightDir = vec3.fromValues(0.0, -1.0, 0.0);
+
+        let right = vec3.fromValues(0.0, 0.0, 1.0);
+        if (Math.abs(vec3.dot(lightDir, right)) > 0.9999) {
+            right = vec3.fromValues(1.0, 0.0, 0.0);
+        }
+
+        const up = vec3.create();
+        vec3.cross(up, lightDir, right);
+
+        mat4.lookAt(this.viewMatrix,
+            vec3.create(), // eye
+            lightDir, // center
+            up
+        );
 
         // Transform bounding into view space
         let viewBoundingBox = boundingBox.clone();
-
         viewBoundingBox.transform(this.viewMatrix);
 
         this.projectionMatrix = mat4.create();
@@ -36,8 +46,28 @@ class ShadowMap
         );
     }
 
-    // Bind as camera for rendering
     bind(pipeline) {
+        // Bind shadow map texture
+        {
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.depthTexture);
+            this.gl.uniform1i(pipeline.uniformLocations.uShadowMapSampler, 0);
+        }
+
+        this.gl.uniformMatrix4fv(
+            pipeline.uniformLocations['uLightProj'],
+            false,
+            this.projectionMatrix
+        );
+        this.gl.uniformMatrix4fv(
+            pipeline.uniformLocations['uLightView'],
+            false,
+            this.viewMatrix
+        );
+    }
+
+    // Bind as camera for rendering
+    bindAsView(pipeline) {
         this.gl.uniformMatrix4fv(
             pipeline.uniformLocations['uProjectionMatrix'],
             false,

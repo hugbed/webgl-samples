@@ -31,16 +31,10 @@ class Camera {
         // the center of the scene.
         this.viewMatrix = mat4.create();
     
-        mat4.rotate(this.viewMatrix,
-            this.viewMatrix,
-            0.5,
-            [1.0, 0.0, 0.0]
-        );
-    
-        mat4.translate(this.viewMatrix,
-            this.viewMatrix,
-            [0.0, -6.0, -12.0]
-        );  
+        mat4.lookAt(this.viewMatrix,
+            [0.0, 10.0, -22],
+            [0.0, 0.0, -5.0],
+            [0.0, 1.0, 0.0]);
     }
 
     bind(pipeline) {

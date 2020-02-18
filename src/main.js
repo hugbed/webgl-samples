@@ -44,7 +44,10 @@ function main() {
         uniformLocations: [
             'uProjectionMatrix',
             'uModelMatrix',
-            'uViewMatrix'
+            'uViewMatrix',
+            'uShadowMapSampler',
+            'uLightProj',
+            'uLightView'
         ],
     };
     const pipeline = new Pipeline(gl, primitiveVs, surfaceFs, locations);
@@ -84,15 +87,29 @@ function main() {
         shadowMap.updateTransforms(box);
 
         // render to the shadow map
-        gl.bindFramebuffer(gl.FRAMEBUFFER, shadowMap.framebuffer);
-        gl.viewport(0, 0, 1024, 1024);
-        drawScene(gl, shadowPipeline, shadowMap, nodes);
+        {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, shadowMap.framebuffer);
+
+            gl.viewport(0, 0, 1024, 1024);
+
+            shadowPipeline.bind();
+            shadowMap.bindAsView(shadowPipeline);
+            drawScene(gl, shadowPipeline, shadowMap, cubes);
+        }
 
         // render to the canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        drawScene(gl, pipeline, camera, nodes);
-        texturedQuad.draw();
+        {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            pipeline.bind();
+
+            camera.bind(pipeline);
+            shadowMap.bind(pipeline);
+            drawScene(gl, pipeline, camera, [ ...cubes, plane ]);
+
+            texturedQuad.draw();
+        }
 
         requestAnimationFrame(render);
     }
@@ -127,10 +144,6 @@ function clear(gl) {
 
 function drawScene(gl, pipeline, camera, nodes) {
     clear(gl);
-
-    pipeline.bind();
-
-    camera.bind(pipeline);
 
     for (const node of nodes) {
         node.draw(pipeline);
