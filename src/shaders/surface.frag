@@ -14,13 +14,22 @@ highp float computeShadow(highp vec3 fragPos, highp vec3 normal)
 
     highp vec3 projPos = fragLightPos.xyz / fragLightPos.w;
     projPos = 0.5 * projPos + 0.5;
-    
-    highp vec3 lightDir = normalize(vec3(0.0, 1.0, 0.0));
-    highp float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.0001);
 
-    highp float currentDepth = projPos.z;
-    highp float closestDepth = texture2D(uShadowMapSampler, projPos.xy).r; 
-    highp float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    // Equivalent of GL_TEXTURE_BORDER_COLOR white
+    if (projPos.x > 1.0 || projPos.x < -0.0 ||
+        projPos.y > 1.0 || projPos.y < -0.0)
+    {
+        return 0.0;
+    }
+
+    projPos = clamp(projPos, vec3(-1.0, -1.0, -1.0), vec3(1.0, 1.0, 1.0));
+    
+    highp vec3 lightDir = normalize(vec3(0.0, -1.0, 0.0));
+    highp float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.0005);
+
+    highp float fragLightDepth = projPos.z;
+    highp float closestDepth = texture2D(uShadowMapSampler, projPos.xy).r;
+    highp float shadow = fragLightDepth - bias > closestDepth ? 1.0 : 0.0;
 
     return shadow;
 }

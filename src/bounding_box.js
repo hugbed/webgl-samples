@@ -46,7 +46,7 @@ class BoundingBox
             vec4.transformMat4(p4, corner4, transformMatrix);
 
             // keep min/max
-            const p3 = vec3.fromValues(p4[0], p4[1], p4[2]);
+            const p3 = vec3.fromValues(p4[0]/p4[3], p4[1]/p4[3], p4[2]/p4[3]);
             vec3.min(this.min, this.min, p3);
             vec3.max(this.max, this.max, p3);
         }

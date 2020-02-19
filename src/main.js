@@ -7,6 +7,7 @@ import { Pipeline } from './pipeline.js';
 import { BoundingBox } from './bounding_box.js';
 import { ShadowMap } from './shadow_map.js';
 import { TexturedQuad } from './textured_quad';
+import { BoundingBoxHelper } from './bounding_box_helper';
 
 import primitiveVs from './shaders/primitive.vert';
 import surfaceFs from './shaders/surface.frag';
@@ -71,6 +72,9 @@ function main() {
     let shadowMap = new ShadowMap(gl);
     const texturedQuad = new TexturedQuad(gl, shadowMap.depthTexture);
 
+    let shadowCastersBox = new BoundingBox();
+    let boxHelper = new BoundingBoxHelper(gl, shadowCastersBox);
+
     // Render loop
     var then = 0;
     function render(now) {
@@ -83,8 +87,9 @@ function main() {
         }
 
         // Compute shadow casters bounding box
-        const box = computeBoundingBox(cubes);
-        shadowMap.updateTransforms(box);
+        updateBoundingBox(shadowCastersBox, cubes);
+        boxHelper.updateBoundingBox(shadowCastersBox);
+        shadowMap.updateTransforms(shadowCastersBox);
 
         // render to the shadow map
         {
@@ -103,12 +108,15 @@ function main() {
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
             pipeline.bind();
-
             camera.bind(pipeline);
             shadowMap.bind(pipeline);
             drawScene(gl, pipeline, camera, [ ...cubes, plane ]);
 
             texturedQuad.draw();
+
+            // gl.enable(gl.BLEND);
+            // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            // boxHelper.draw(camera);
         }
 
         requestAnimationFrame(render);
@@ -116,8 +124,8 @@ function main() {
     requestAnimationFrame(render);
 }
 
-function computeBoundingBox(objects) {
-    let box = new BoundingBox();
+function updateBoundingBox(box, objects) {
+    box.reset();
     for (const obj of objects) {
         const objBox = obj.worldBoundingBox;
 

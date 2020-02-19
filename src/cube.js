@@ -37,8 +37,7 @@ class Cube
         this.worldBoundingBox = this.vertexBoundingBox.clone();
         this.worldBoundingBox.transform(this.modelMatrix);
 
-        // this.rotation += deltaTime;
-        this.rotation = 0.5;
+        this.rotation += deltaTime;
     }
 
     draw(pipeline) {

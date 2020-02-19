@@ -20,9 +20,9 @@ class ShadowMap
 
         const lightDir = vec3.fromValues(0.0, -1.0, 0.0);
 
-        let right = vec3.fromValues(0.0, 0.0, 1.0);
+        let right = vec3.fromValues(1.0, 0.0, 0.0);
         if (Math.abs(vec3.dot(lightDir, right)) > 0.9999) {
-            right = vec3.fromValues(1.0, 0.0, 0.0);
+            right = vec3.fromValues(0.0, 0.0, 1.0);
         }
 
         const up = vec3.create();
@@ -42,7 +42,7 @@ class ShadowMap
         mat4.ortho(this.projectionMatrix,
             viewBoundingBox.min[0], viewBoundingBox.max[0],
             viewBoundingBox.min[1], viewBoundingBox.max[1],
-            viewBoundingBox.min[2], viewBoundingBox.max[2]
+            -viewBoundingBox.max[2], -viewBoundingBox.min[2] // looking at -z
         );
     }
 
