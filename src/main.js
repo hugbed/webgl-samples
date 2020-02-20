@@ -110,7 +110,7 @@ function main() {
             pipeline.bind();
             camera.bind(pipeline);
             shadowMap.bind(pipeline);
-            drawScene(gl, pipeline, camera, [ ...cubes, plane ]);
+            drawScene(gl, pipeline, camera, nodes);
 
             texturedQuad.draw();
 
@@ -127,7 +127,7 @@ function main() {
 function updateBoundingBox(box, objects) {
     box.reset();
     for (const obj of objects) {
-        const objBox = obj.worldBoundingBox;
+        const objBox = obj.getWorldBoundingBox();
 
         vec3.min(box.min,
             box.min, objBox.min

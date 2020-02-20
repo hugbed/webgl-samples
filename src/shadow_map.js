@@ -2,8 +2,25 @@ import { vec3, mat4 } from 'gl-matrix';
 
 import { Pipeline } from './pipeline.js';
 
-import shadowVs from './shaders/shadow.vert';
-import shadowFs from './shaders/shadow.frag';
+const shadowVs = `
+    attribute vec3 aVertexPosition;
+
+    uniform mat4 uModelMatrix;
+    uniform mat4 uViewMatrix;
+    uniform mat4 uProjectionMatrix;
+
+    varying highp vec3 vFragNormal;
+
+    void main(void) {
+        gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+    }
+`;
+
+const shadowFs = `
+    void main(void) {
+        /* gl_FragDepth is written automatically */
+    }
+`;
 
 class ShadowMap
 {
