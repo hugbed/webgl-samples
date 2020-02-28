@@ -5,8 +5,6 @@ uniform highp mat4 uLightProj;
 uniform highp mat4 uLightView;
 uniform sampler2D uShadowMapSampler;
 
-//#define DEBUG_SHADOWS
-
 /// 1.0 means shadow, 0.0 no shadow
 highp float computeShadow(highp vec3 fragPos, highp vec3 normal)
 {
@@ -22,6 +20,7 @@ highp float computeShadow(highp vec3 fragPos, highp vec3 normal)
         return 0.0;
     }
 
+    // Objects outside the shadow bounding box will go out of the unit cube
     projPos = clamp(projPos, vec3(-1.0, -1.0, -1.0), vec3(1.0, 1.0, 1.0));
     
     highp vec3 lightDir = normalize(vec3(0.0, -1.0, 0.0));

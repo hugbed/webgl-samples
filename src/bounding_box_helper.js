@@ -32,10 +32,12 @@ class BoundingBoxHelper {
         this.createOrUpdatePositionBuffer();
     }
 
-    draw(camera) {
+    bind(camera) {
         this.pipeline.bind();
         camera.bind(this.pipeline);
+    }
 
+    draw() {
         // Tell WebGL how to pull out the positions from the position
         // buffer into the vertexPosition attribute
         {

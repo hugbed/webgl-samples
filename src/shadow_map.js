@@ -26,8 +26,8 @@ class ShadowMap
 {
     constructor(gl) {
         this.gl = gl;
-        this.createTexture();
-        this.createFramebuffer();
+        this._createTexture();
+        this._createFramebuffer();
     }
     
     updateTransforms(boundingBox) {
@@ -97,7 +97,7 @@ class ShadowMap
         );
     }
 
-    createTexture() {
+    _createTexture() {
         // create to render to
         const targetTextureWidth = 1024;
         const targetTextureHeight = 1024;
@@ -122,7 +122,7 @@ class ShadowMap
         }
     }
 
-    createFramebuffer() {
+    _createFramebuffer() {
         // Create and bind the framebuffer
         this.framebuffer = this.gl.createFramebuffer();
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);

@@ -6,11 +6,14 @@ import { Camera } from './camera.js';
 import { Pipeline } from './pipeline.js';
 import { BoundingBox } from './bounding_box.js';
 import { ShadowMap } from './shadow_map.js';
-import { TexturedQuad } from './textured_quad';
+import { TextureHelper } from './textured_helper';
 import { BoundingBoxHelper } from './bounding_box_helper';
 
 import primitiveVs from './shaders/primitive.vert';
 import surfaceFs from './shaders/surface.frag';
+
+// Global settings
+window.drawBoundingBox = false;
 
 main();
 
@@ -36,7 +39,7 @@ function main() {
     spector.spyCanvases();
     */
 
-    // Init shaders
+    // Init shaders for surface rendering
     const locations = {
         attribLocations: [
             'aVertexPosition',
@@ -51,10 +54,12 @@ function main() {
             'uLightView'
         ],
     };
-    const pipeline = new Pipeline(gl, primitiveVs, surfaceFs, locations);
+    const surfacePipeline = new Pipeline(gl, primitiveVs, surfaceFs, locations);
+    
+    // Init shaders for shadow rendering
     const shadowPipeline = ShadowMap.createPipeline(gl); // todo: put in ShadowMap for simplicity
 
-    // Create objects to render
+    // Create scene objects
     let camera = new Camera(gl);
 
     const cubes = [
@@ -63,16 +68,13 @@ function main() {
         new Cube(gl, vec3.fromValues(-2.0, 1.0, 4.0)),
         new Cube(gl, vec3.fromValues(1.0, 0.0, -3.0))
     ];
-
     const plane = new Plane(gl);
-
     const nodes = [ ...cubes, plane ];
 
     // Shadow map
     let shadowMap = new ShadowMap(gl);
-    const texturedQuad = new TexturedQuad(gl, shadowMap.depthTexture);
-
     let shadowCastersBox = new BoundingBox();
+    const textureHelper = new TextureHelper(gl, shadowMap.depthTexture);
     let boxHelper = new BoundingBoxHelper(gl, shadowCastersBox);
 
     // Render loop
@@ -82,6 +84,7 @@ function main() {
         const deltaTime = now - then;
         then = now;
 
+        // Update
         for (let cube of cubes) {
             cube.update(deltaTime);
         }
@@ -91,32 +94,42 @@ function main() {
         boxHelper.updateBoundingBox(shadowCastersBox);
         shadowMap.updateTransforms(shadowCastersBox);
 
-        // render to the shadow map
+        // Render to the shadow map
         {
             gl.bindFramebuffer(gl.FRAMEBUFFER, shadowMap.framebuffer);
-
             gl.viewport(0, 0, 1024, 1024);
+            clear(gl);
 
             shadowPipeline.bind();
             shadowMap.bindAsView(shadowPipeline);
-            drawScene(gl, shadowPipeline, shadowMap, cubes);
+            for (const node of cubes) {
+                node.draw(shadowPipeline);
+            }
         }
 
-        // render to the canvas
+        // Render to the canvas
         {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            clear(gl);
 
-            pipeline.bind();
-            camera.bind(pipeline);
-            shadowMap.bind(pipeline);
-            drawScene(gl, pipeline, camera, nodes);
+            // Draw objects with shadows
+            surfacePipeline.bind();
+            camera.bind(surfacePipeline);
+            shadowMap.bind(surfacePipeline);
+            for (const node of nodes) {
+                node.draw(surfacePipeline);
+            }
 
-            texturedQuad.draw();
+            // Draw helpers
+            textureHelper.bind(camera);
+            textureHelper.draw();
 
-            // gl.enable(gl.BLEND);
-            // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-            // boxHelper.draw(camera);
+            if (window.drawBoundingBox) {
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                boxHelper.draw(camera);
+            }
         }
 
         requestAnimationFrame(render);
@@ -148,12 +161,4 @@ function clear(gl) {
     gl.depthFunc(gl.LEQUAL);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-}
-
-function drawScene(gl, pipeline, camera, nodes) {
-    clear(gl);
-
-    for (const node of nodes) {
-        node.draw(pipeline);
-    }
 }

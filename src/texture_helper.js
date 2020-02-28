@@ -1,9 +1,30 @@
 import { Pipeline } from './pipeline.js';
 
-import texturedQuadVs from './shaders/textured_quad.vert';
-import texturedQuadFs from './shaders/textured_quad.frag';
+const textureHelperVs = `
+    attribute vec2 aVertexPosition;
 
-class TexturedQuad {
+    varying highp vec2 vTexCoord;
+
+    void main() {
+        highp vec2 center = vec2(-0.6, -0.6);
+        highp vec2 size = vec2(0.35, 0.35);
+
+        gl_Position = vec4(center + size * aVertexPosition, 0.0, 1.0);
+        vTexCoord  = aVertexPosition.xy * 0.5 + vec2(0.5, 0.5);
+    }
+`;
+
+const textureHelperFs = `
+    varying highp vec2 vTexCoord;
+
+    uniform sampler2D uSampler;
+
+    void main() {
+        gl_FragColor = vec4(texture2D(uSampler, vTexCoord).rrr, 1.0);
+    }
+`;
+
+class TextureHelper {
     constructor(gl, texture) {
         this.gl = gl;
         this.texture = texture;
@@ -13,7 +34,7 @@ class TexturedQuad {
 
     createPipeline() {
         const locations = { attribLocations: [], uniformLocations: [ 'uSampler' ] };
-        this.pipeline = new Pipeline(this.gl, texturedQuadVs, texturedQuadFs, locations);
+        this.pipeline = new Pipeline(this.gl, textureHelperVs, textureHelperFs, locations);
     }
 
     createPositionBuffer() {
@@ -59,4 +80,4 @@ class TexturedQuad {
     }
 }
 
-export { TexturedQuad };
+export { TextureHelper };
