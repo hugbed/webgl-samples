@@ -1,6 +1,7 @@
 import { vec3, mat4 } from 'gl-matrix';
 
 import { Pipeline } from './pipeline.js';
+import { BoundingBox } from './bounding_box.js';
 
 const shadowVs = `
     attribute vec3 aVertexPosition;
@@ -26,40 +27,59 @@ class ShadowMap
 {
     constructor(gl) {
         this.gl = gl;
+        this._createPipeline();
         this._createTexture();
         this._createFramebuffer();
     }
     
-    updateTransforms(boundingBox) {
+    updateTransforms(boundingBox, camera) {
         // Set the drawing position to the "identity" point, which is
         // the center of the scene.
         this.viewMatrix = mat4.create();
 
+        // Direction
         const lightDir = vec3.fromValues(0.0, -1.0, 0.0);
 
+        // Up
         let right = vec3.fromValues(1.0, 0.0, 0.0);
         if (Math.abs(vec3.dot(lightDir, right)) > 0.9999) {
             right = vec3.fromValues(0.0, 0.0, 1.0);
         }
-
         const up = vec3.create();
-        vec3.cross(up, lightDir, right);
 
+        // View
+        vec3.cross(up, lightDir, right);
         mat4.lookAt(this.viewMatrix,
             vec3.create(), // eye
             lightDir, // center
             up
         );
 
-        // Transform bounding into view space
-        let viewBoundingBox = boundingBox.clone();
-        viewBoundingBox.transform(this.viewMatrix);
+        // Compute projection from view and scene
+        let camCorners = camera.computeFrustrumCorners();
+        let camBox = BoundingBox.fromPoints(camCorners);
+        let sceneBox = boundingBox.clone();
+
+        // in view space
+        camBox.transform(this.viewMatrix);
+        sceneBox.transform(this.viewMatrix);
+
+        // Cast shadows into camera frustrum
+        // from objects outside of the frustrum
+        // by pushing adjusting near plane
+        camBox.max[2] = sceneBox.max[2];
+
+        // Restrict everything else to the camera frustrum
+        // (sides and far plane)
+        vec3.min(camBox.min, camBox.min, sceneBox.min);
+        camBox.max[0] = Math.min(camBox.max[0], sceneBox.max[0]);
+        camBox.max[1] = Math.min(camBox.max[1], sceneBox.max[1]);
 
         this.projectionMatrix = mat4.create();
         mat4.ortho(this.projectionMatrix,
-            viewBoundingBox.min[0], viewBoundingBox.max[0],
-            viewBoundingBox.min[1], viewBoundingBox.max[1],
-            -viewBoundingBox.max[2], -viewBoundingBox.min[2] // looking at -z
+            sceneBox.min[0], sceneBox.max[0],
+            sceneBox.min[1], sceneBox.max[1],
+            -sceneBox.max[2], -sceneBox.min[2] // looking at -z
         );
     }
 
@@ -83,15 +103,16 @@ class ShadowMap
         );
     }
 
-    // Bind as camera for rendering
-    bindAsView(pipeline) {
+    // Bind as camera/view for rendering
+    bindAsView() {
+        this.pipeline.bind();
         this.gl.uniformMatrix4fv(
-            pipeline.uniformLocations['uProjectionMatrix'],
+            this.pipeline.uniformLocations['uProjectionMatrix'],
             false,
             this.projectionMatrix
         );
         this.gl.uniformMatrix4fv(
-            pipeline.uniformLocations['uViewMatrix'],
+            this.pipeline.uniformLocations['uViewMatrix'],
             false,
             this.viewMatrix
         );
@@ -135,7 +156,7 @@ class ShadowMap
         );
     }
 
-    static createPipeline(gl) {
+    _createPipeline() {
         const locations = {
             attribLocations: [
                 'aVertexPosition'
@@ -146,7 +167,7 @@ class ShadowMap
                 'uViewMatrix'
             ],
         };
-        return new Pipeline(gl, shadowVs, shadowFs, locations);
+        this.pipeline = new Pipeline(this.gl, shadowVs, shadowFs, locations);
     }
 }
 

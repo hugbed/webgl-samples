@@ -1,4 +1,4 @@
-import { mat4 } from 'gl-matrix';
+import { mat4, vec4 } from 'gl-matrix';
 
 // Just a fixed camera to look at the scene
 class Camera {
@@ -48,6 +48,31 @@ class Camera {
             false,
             this.viewMatrix
         );
+    }
+
+    // todo: try implementing this using fov and trigonometry
+    computeFrustrumCorners() {
+        let view_inv = mat4.create();
+        let proj_inv = mat4.create();
+        let transform = mat4.create();
+        mat4.invert(view_inv, this.viewMatrix);
+        mat4.invert(proj_inv, this.projectionMatrix);
+        mat4.multiply(transform, view_inv, proj_inv);
+
+        let points = [
+            vec4.fromValues(-1.0, -1.0, -1.0, 1.0),
+            vec4.fromValues(-1.0, -1.0,  1.0, 1.0),
+            vec4.fromValues(-1.0,  1.0, -1.0, 1.0),
+            vec4.fromValues(-1.0,  1.0,  1.0, 1.0),
+            vec4.fromValues( 1.0, -1.0, -1.0, 1.0),
+            vec4.fromValues( 1.0, -1.0,  1.0, 1.0),
+            vec4.fromValues( 1.0,  1.0, -1.0, 1.0),
+            vec4.fromValues( 1.0,  1.0,  1.0, 1.0)
+        ];
+        for (let p of points) {
+            vec4.transformMat4(p, p, transform);
+        }
+        return points;
     }
 }
 

@@ -2,14 +2,14 @@ import { Mesh } from './mesh.js';
 
 class Plane
 {
-    constructor(gl) {
+    constructor(gl, size, pos_y) {
         this.gl = gl;
 
         const positions = [
-            -10.0,  -2.0, -10.0,
-            10.0,  -2.0, -10.0,
-            -10.0,  -2.0,  10.0,
-            10.0,  -2.0,  10.0,
+            -size,  pos_y, -size,
+            size,  pos_y, -size,
+            -size,  pos_y,  size,
+            size,  pos_y,  size,
         ];
         const indices = [
             2, 1, 0,

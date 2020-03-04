@@ -3,14 +3,11 @@ import { vec3 } from 'gl-matrix';
 import { Cube } from './cube.js';
 import { Plane } from './plane.js';
 import { Camera } from './camera.js';
-import { Pipeline } from './pipeline.js';
 import { BoundingBox } from './bounding_box.js';
 import { ShadowMap } from './shadow_map.js';
-import { TextureHelper } from './textured_helper';
+import { TextureHelper } from './texture_helper';
 import { BoundingBoxHelper } from './bounding_box_helper';
-
-import primitiveVs from './shaders/primitive.vert';
-import surfaceFs from './shaders/surface.frag';
+import { SurfaceMaterial } from './surface_material.js';
 
 // Global settings
 window.drawBoundingBox = false;
@@ -40,40 +37,29 @@ function main() {
     */
 
     // Init shaders for surface rendering
-    const locations = {
-        attribLocations: [
-            'aVertexPosition',
-            'aVertexNormal',
-        ],
-        uniformLocations: [
-            'uProjectionMatrix',
-            'uModelMatrix',
-            'uViewMatrix',
-            'uShadowMapSampler',
-            'uLightProj',
-            'uLightView'
-        ],
-    };
-    const surfacePipeline = new Pipeline(gl, primitiveVs, surfaceFs, locations);
-    
-    // Init shaders for shadow rendering
-    const shadowPipeline = ShadowMap.createPipeline(gl); // todo: put in ShadowMap for simplicity
+    let surfaceMaterial = new SurfaceMaterial(gl);
 
     // Create scene objects
     let camera = new Camera(gl);
 
+    let cubeHeight = 5.0; // vary the height of one cube
     const cubes = [
         new Cube(gl, vec3.fromValues(-5.0, 2.5, -3.0)),
         new Cube(gl, vec3.fromValues(5.0, 1.5, 0.0)),
         new Cube(gl, vec3.fromValues(-2.0, 1.0, 4.0)),
-        new Cube(gl, vec3.fromValues(1.0, 0.0, -3.0))
+        new Cube(gl, vec3.fromValues(1.0, 8.0, -3.0))
     ];
-    const plane = new Plane(gl);
+
+    const size = 10.0;
+    const pos_y = -2.0;
+    const plane = new Plane(gl, size, pos_y);
     const nodes = [ ...cubes, plane ];
 
     // Shadow map
     let shadowMap = new ShadowMap(gl);
     let shadowCastersBox = new BoundingBox();
+
+    // Helpers
     const textureHelper = new TextureHelper(gl, shadowMap.depthTexture);
     let boxHelper = new BoundingBoxHelper(gl, shadowCastersBox);
 
@@ -85,6 +71,8 @@ function main() {
         then = now;
 
         // Update
+        cubeHeight = 5.0 * Math.sin(now) + 5.0;
+        cubes[3].position[1] = cubeHeight;
         for (let cube of cubes) {
             cube.update(deltaTime);
         }
@@ -92,7 +80,7 @@ function main() {
         // Compute shadow casters bounding box
         updateBoundingBox(shadowCastersBox, cubes);
         boxHelper.updateBoundingBox(shadowCastersBox);
-        shadowMap.updateTransforms(shadowCastersBox);
+        shadowMap.updateTransforms(shadowCastersBox, camera);
 
         // Render to the shadow map
         {
@@ -100,10 +88,9 @@ function main() {
             gl.viewport(0, 0, 1024, 1024);
             clear(gl);
 
-            shadowPipeline.bind();
-            shadowMap.bindAsView(shadowPipeline);
+            shadowMap.bindAsView();
             for (const node of cubes) {
-                node.draw(shadowPipeline);
+                node.draw(shadowMap.pipeline);
             }
         }
 
@@ -114,21 +101,24 @@ function main() {
             clear(gl);
 
             // Draw objects with shadows
-            surfacePipeline.bind();
-            camera.bind(surfacePipeline);
-            shadowMap.bind(surfacePipeline);
+            const pipeline = surfaceMaterial.pipeline;
+
+            pipeline.bind();
+            camera.bind(pipeline);
+            shadowMap.bind(pipeline);
             for (const node of nodes) {
-                node.draw(surfacePipeline);
+                node.draw(pipeline);
             }
 
             // Draw helpers
-            textureHelper.bind(camera);
             textureHelper.draw();
 
             if (window.drawBoundingBox) {
                 gl.enable(gl.BLEND);
                 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                boxHelper.draw(camera);
+                boxHelper.bind();
+                camera.bind(boxHelper.pipeline);
+                boxHelper.draw();
             }
         }
 

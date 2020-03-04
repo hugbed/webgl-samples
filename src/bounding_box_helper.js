@@ -32,9 +32,8 @@ class BoundingBoxHelper {
         this.createOrUpdatePositionBuffer();
     }
 
-    bind(camera) {
+    bind() {
         this.pipeline.bind();
-        camera.bind(this.pipeline);
     }
 
     draw() {

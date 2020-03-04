@@ -12,6 +12,15 @@ class BoundingBox
         this.max = vec3.fromValues(-maxValue, -maxValue, -maxValue);
     }
 
+    static fromPoints(points) {
+        let box = new BoundingBox();
+        for (const p of points) {
+            vec3.min(box.min, box.min, p);
+            vec3.max(box.max, box.max, p);
+        }
+        return box;
+    }
+
     getCorners() {
         return [
             vec3.fromValues(this.min[0], this.min[1], this.min[2]),

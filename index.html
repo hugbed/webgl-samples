@@ -9,7 +9,18 @@
 
   <body>
     <canvas id="glcanvas" width="640" height="480"></canvas>
+    <div>
+      <input type="checkbox" name="displayBoundingBox">
+      <label>Display Bounding Box</label>
+    </div>  
   </body>
+
+  <script>
+    var checkbox = document.querySelector("input[name=displayBoundingBox]");
+    checkbox.addEventListener( 'change', function() {
+      window.drawBoundingBox = this.checked;
+    });
+  </script>
 
   <script src="dist/bundle.js"></script>
 </html>
