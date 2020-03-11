@@ -16,10 +16,10 @@ class Camera {
         const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         const zNear = 0.1;
         const zFar = 100.0;
-        this.projectionMatrix = mat4.create();
     
         // note: glmatrix.js always has the first argument
         // as the destination to receive the result.
+        this.projectionMatrix = mat4.create();
         mat4.perspective(this.projectionMatrix,
             fieldOfView,
             aspect,
@@ -71,6 +71,8 @@ class Camera {
         ];
         for (let p of points) {
             vec4.transformMat4(p, p, transform);
+            // Divide by p.w
+            vec4.divide(p, p, vec4.fromValues(p[3], p[3], p[3], p[3]));
         }
         return points;
     }

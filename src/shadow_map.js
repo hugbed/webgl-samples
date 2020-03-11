@@ -71,15 +71,14 @@ class ShadowMap
 
         // Restrict everything else to the camera frustrum
         // (sides and far plane)
-        vec3.min(camBox.min, camBox.min, sceneBox.min);
-        camBox.max[0] = Math.min(camBox.max[0], sceneBox.max[0]);
-        camBox.max[1] = Math.min(camBox.max[1], sceneBox.max[1]);
+        vec3.max(camBox.min, camBox.min, sceneBox.min);
+        vec3.min(camBox.max, camBox.max, sceneBox.max);
 
         this.projectionMatrix = mat4.create();
         mat4.ortho(this.projectionMatrix,
-            sceneBox.min[0], sceneBox.max[0],
-            sceneBox.min[1], sceneBox.max[1],
-            -sceneBox.max[2], -sceneBox.min[2] // looking at -z
+            camBox.min[0], camBox.max[0],
+            camBox.min[1], camBox.max[1],
+            -camBox.max[2], -camBox.min[2] // looking at -z
         );
     }
 

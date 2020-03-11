@@ -47,7 +47,7 @@ function main() {
         new Cube(gl, vec3.fromValues(-5.0, 2.5, -3.0)),
         new Cube(gl, vec3.fromValues(5.0, 1.5, 0.0)),
         new Cube(gl, vec3.fromValues(-2.0, 1.0, 4.0)),
-        new Cube(gl, vec3.fromValues(1.0, 8.0, -3.0))
+        new Cube(gl, vec3.fromValues(1.0, 0.0, -3.0))
     ];
 
     const size = 10.0;
@@ -71,8 +71,8 @@ function main() {
         then = now;
 
         // Update
-        cubeHeight = 5.0 * Math.sin(now) + 5.0;
-        cubes[3].position[1] = cubeHeight;
+        // cubeHeight = 5.0 * Math.sin(now) + 5.0;
+        // cubes[3].position[1] = cubeHeight;
         for (let cube of cubes) {
             cube.update(deltaTime);
         }

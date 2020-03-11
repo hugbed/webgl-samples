@@ -24,7 +24,7 @@ highp float computeShadow(highp vec3 fragPos, highp vec3 normal)
     projPos = clamp(projPos, vec3(-1.0, -1.0, -1.0), vec3(1.0, 1.0, 1.0));
     
     highp vec3 lightDir = normalize(vec3(0.0, -1.0, 0.0));
-    highp float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.005);
+    highp float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.008);
 
     highp float fragLightDepth = projPos.z;
     highp float closestDepth = texture2D(uShadowMapSampler, projPos.xy).r;
