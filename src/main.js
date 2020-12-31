@@ -1,4 +1,4 @@
-import { vec3 } from 'gl-matrix';
+import { vec3, mat4 } from 'gl-matrix';
 
 import { Cube } from './cube.js';
 import { Plane } from './plane.js';
@@ -47,7 +47,7 @@ function main() {
         new Cube(gl, vec3.fromValues(-5.0, 2.5, -3.0)),
         new Cube(gl, vec3.fromValues(5.0, 1.5, 0.0)),
         new Cube(gl, vec3.fromValues(-2.0, 1.0, 4.0)),
-        new Cube(gl, vec3.fromValues(1.0, 0.0, -3.0))
+        new Cube(gl, vec3.fromValues(0.0, 50.0, -3.0))
     ];
 
     const size = 10.0;
@@ -71,16 +71,16 @@ function main() {
         then = now;
 
         // Update
-        // cubeHeight = 5.0 * Math.sin(now) + 5.0;
-        // cubes[3].position[1] = cubeHeight;
+        cubeHeight = 5.0 * Math.sin(now) + 5.0;
+        cubes[3].position[1] = cubeHeight;
         for (let cube of cubes) {
             cube.update(deltaTime);
         }
 
         // Compute shadow casters bounding box
-        updateBoundingBox(shadowCastersBox, cubes);
+        updateBoundingBox(camera, shadowCastersBox, cubes, shadowMap);
         boxHelper.updateBoundingBox(shadowCastersBox);
-        shadowMap.updateTransforms(shadowCastersBox, camera);
+        shadowMap.updateTransforms(shadowCastersBox);
 
         // Render to the shadow map
         {
@@ -127,19 +127,50 @@ function main() {
     requestAnimationFrame(render);
 }
 
-function updateBoundingBox(box, objects) {
+function updateBoundingBox(camera, box, objects, shadowMap) {
+    // Compute the whole scene bounding box
+    let sceneBox = new BoundingBox();
+    for (const obj of objects) {
+        const objBox = obj.getWorldBoundingBox();
+        vec3.min(sceneBox.min, sceneBox.min, objBox.min);
+        vec3.max(sceneBox.max, sceneBox.max, objBox.max);
+    }
+
+    let camCorners = camera.computeFrustrumCorners();
+    let camBox = BoundingBox.fromPoints(camCorners);
+    
+    // We'll transform world bounding boxes into light local
+    // bounding boxes so we can stretch it in the light direction
+    // easily (-z).
+    const shadowViewMatrix = shadowMap.getViewMatrix();
+
+    // Transform sceneBox in shadow view space
+    sceneBox.transform(shadowViewMatrix);
+
+    // Transform camBox in shadow view space
+    camBox.transform(shadowViewMatrix);
+
+    // Stretch the camera bounding box towards the light (opposite of light direction)
+    // so that it contains the whole scene in this direction
+    // (light direction is -z in local space)
+    camBox.max[2] = sceneBox.max[2] 
+
+    // Transform this box back to world coordinates
+    let shadowViewInverse = mat4.create();
+    mat4.invert(shadowViewInverse, shadowViewMatrix);
+    sceneBox.transform(shadowViewInverse);
+
+    // Then compute shadow caster box using
+    // this streched camera frustrum bounding box
     box.reset();
     for (const obj of objects) {
         const objBox = obj.getWorldBoundingBox();
-
-        vec3.min(box.min,
-            box.min, objBox.min
-        );
-        vec3.max(box.max,
-            box.max, objBox.max
-        );
+        // Only include 
+        if (objBox.intersects(camBox)) {
+            vec3.min(box.min, box.min, objBox.min);
+            vec3.max(box.max, box.max, objBox.max);
+        }
     }
-    return box;
 }
 
 function clear(gl) {

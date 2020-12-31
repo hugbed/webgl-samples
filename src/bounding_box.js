@@ -21,6 +21,13 @@ class BoundingBox
         return box;
     }
 
+    intersects(box)
+    {
+        return (this.min[0] <= box.max[0] && this.max[0] >= box.min[0]) &&
+               (this.min[1] <= box.max[1] && this.max[1] >= box.min[1]) &&
+               (this.min[2] <= box.max[2] && this.max[2] >= box.min[2]);
+    }
+
     getCorners() {
         return [
             vec3.fromValues(this.min[0], this.min[1], this.min[2]),
@@ -42,7 +49,7 @@ class BoundingBox
     }
 
     transform(transformMatrix) {
-        // We can't just take the min/max we have
+        // We can't just take the axis-aligned min/max we have
         // since this only applies to this coordinate
         // system. We need to reproject all box corners.
         const corners = this.getCorners();

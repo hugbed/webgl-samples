@@ -27,58 +27,49 @@ class ShadowMap
 {
     constructor(gl) {
         this.gl = gl;
+        this.lightDir = vec3.fromValues(0.0, -1.0, 0.0); // we choose this as an example
         this._createPipeline();
         this._createTexture();
         this._createFramebuffer();
     }
     
-    updateTransforms(boundingBox, camera) {
+    getViewMatrix() {
         // Set the drawing position to the "identity" point, which is
         // the center of the scene.
-        this.viewMatrix = mat4.create();
-
-        // Direction
-        const lightDir = vec3.fromValues(0.0, -1.0, 0.0);
+        let viewMatrix = mat4.create();
 
         // Up
         let right = vec3.fromValues(1.0, 0.0, 0.0);
-        if (Math.abs(vec3.dot(lightDir, right)) > 0.9999) {
+        if (Math.abs(vec3.dot(this.lightDir, right)) > 0.9999) {
             right = vec3.fromValues(0.0, 0.0, 1.0);
         }
         const up = vec3.create();
 
         // View
-        vec3.cross(up, lightDir, right);
-        mat4.lookAt(this.viewMatrix,
+        vec3.cross(up, this.lightDir, right);
+        mat4.lookAt(viewMatrix,
             vec3.create(), // eye
-            lightDir, // center
+            this.lightDir, // center
             up
         );
 
+        return viewMatrix;
+    }
+
+    updateTransforms(boundingBox) {
+        this.viewMatrix = this.getViewMatrix(this.lightDir);
+
         // Compute projection from view and scene
-        let camCorners = camera.computeFrustrumCorners();
-        let camBox = BoundingBox.fromPoints(camCorners);
-        let sceneBox = boundingBox.clone();
+        let boxLight = boundingBox.clone();
 
         // in view space
-        camBox.transform(this.viewMatrix);
-        sceneBox.transform(this.viewMatrix);
-
-        // Cast shadows into camera frustrum
-        // from objects outside of the frustrum
-        // by pushing adjusting near plane
-        camBox.max[2] = sceneBox.max[2];
-
-        // Restrict everything else to the camera frustrum
-        // (sides and far plane)
-        vec3.max(camBox.min, camBox.min, sceneBox.min);
-        vec3.min(camBox.max, camBox.max, sceneBox.max);
+        boxLight.transform(this.viewMatrix);
 
         this.projectionMatrix = mat4.create();
         mat4.ortho(this.projectionMatrix,
-            camBox.min[0], camBox.max[0],
-            camBox.min[1], camBox.max[1],
-            -camBox.max[2], -camBox.min[2] // looking at -z
+            boxLight.min[0], boxLight.max[0],
+            boxLight.min[1], boxLight.max[1],
+            -boxLight.max[2], -boxLight.min[2] // looking at -z
         );
     }
 
